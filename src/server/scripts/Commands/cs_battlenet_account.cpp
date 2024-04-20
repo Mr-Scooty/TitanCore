@@ -143,7 +143,7 @@ public:
         {
             if (param == "on")
             {
-                PreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_LOGON_COUNTRY);
+                LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_LOGON_COUNTRY);
                 uint32 ip = Trinity::Net::address_to_uint(Trinity::Net::make_address_v4(handler->GetSession()->GetRemoteAddress()));
                 EndianConvertReverse(ip);
                 stmt->setUInt32(0, ip);
@@ -166,7 +166,7 @@ public:
             }
             else if (param == "off")
             {
-                PreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_UPD_BNET_ACCOUNT_LOCK_CONTRY);
+                LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_UPD_BNET_ACCOUNT_LOCK_CONTRY);
                 stmt->setString(0, "00");
                 stmt->setUInt32(1, handler->GetSession()->GetBattlenetAccountId());
                 LoginDatabase.Execute(stmt);
@@ -194,7 +194,7 @@ public:
 
         if (!param.empty())
         {
-            PreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_UPD_BNET_ACCOUNT_LOCK);
+            LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_UPD_BNET_ACCOUNT_LOCK);
 
             if (param == "on")
             {
@@ -477,7 +477,7 @@ public:
             return false;
 
         char* battlenetAccountName = strtok((char*)args, " ");
-        PreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_BNET_GAME_ACCOUNT_LIST_SMALL);
+        LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_BNET_GAME_ACCOUNT_LIST_SMALL);
         stmt->setString(0, battlenetAccountName);
         if (PreparedQueryResult accountList = LoginDatabase.Query(stmt))
         {

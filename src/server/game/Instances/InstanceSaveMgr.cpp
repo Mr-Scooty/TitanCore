@@ -139,7 +139,7 @@ void InstanceSaveManager::DeleteInstanceFromDB(uint32 instanceid)
 {
     SQLTransaction trans = CharacterDatabase.BeginTransaction();
 
-    PreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_INSTANCE_BY_INSTANCE);
+    CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_INSTANCE_BY_INSTANCE);
     stmt->setUInt32(0, instanceid);
     trans->Append(stmt);
 
@@ -167,7 +167,7 @@ void InstanceSaveManager::RemoveInstanceSave(uint32 InstanceId)
         // save the resettime for normal instances only when they get unloaded
         if (time_t resettime = itr->second->GetResetTimeForDB())
         {
-            PreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_UPD_INSTANCE_RESETTIME);
+            CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_UPD_INSTANCE_RESETTIME);
 
             stmt->setUInt32(0, uint32(resettime));
             stmt->setUInt32(1, InstanceId);
