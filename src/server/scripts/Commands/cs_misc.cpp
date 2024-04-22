@@ -1772,7 +1772,7 @@ public:
                 EndianConvertReverse(ip);
 
                 // If ip2nation table is populated, it displays the country
-                stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_IP2NATION_COUNTRY);
+                PreparedStatement<LoginDatabaseConnection>* stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_IP2NATION_COUNTRY);
                 stmt->setUInt32(0, ip);
                 if (PreparedQueryResult result2 = LoginDatabase.Query(stmt))
                 {
@@ -2143,7 +2143,7 @@ public:
     // helper for mutehistory
     static bool HandleMuteInfoHelper(uint32 accountId, char const* accountName, ChatHandler *handler)
     {
-        PreparedStatement *stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_ACCOUNT_MUTE_INFO);
+        PreparedStatement<LoginDatabaseConnection> *stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_ACCOUNT_MUTE_INFO);
         stmt->setUInt32(0, accountId);
         PreparedQueryResult result = LoginDatabase.Query(stmt);
 

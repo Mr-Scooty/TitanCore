@@ -6907,7 +6907,7 @@ void Player::SetInGuild(ObjectGuid::LowType guildId)
 
 ObjectGuid::LowType Player::GetGuildIdFromDB(ObjectGuid guid)
 {
-    * stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_GUILD_MEMBER);
+    CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_GUILD_MEMBER);
     stmt->setUInt64(0, guid.GetCounter());
     if (PreparedQueryResult result = CharacterDatabase.Query(stmt))
         return result->Fetch()[0].GetUInt64();
@@ -20317,7 +20317,7 @@ void Player::SaveToDB(bool create /*=false*/)
     loginStmt->setUInt32(0, GetSession()->GetAccountId());
     loginStmt->setUInt8(1, realm.Id.Region);
     loginStmt->setUInt8(2, realm.Id.Site);
-    LoginDatabase->Append(loginStmt);
+    loginTransaction->Append(loginStmt);
 
     loginStmt = LoginDatabase.GetPreparedStatement(LOGIN_INS_BNET_LAST_PLAYER_CHARACTERS);
     loginStmt->setUInt32(0, GetSession()->GetAccountId());
@@ -20400,7 +20400,7 @@ void Player::_SaveActions(CharacterDatabaseTransaction& trans)
     }
 }
 
-void Player::_SaveAuras(haracterDatabaseTransaction& trans)
+void Player::_SaveAuras(CharacterDatabaseTransaction& trans)
 {
     CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_CHAR_AURA_EFFECT);
     stmt->setUInt64(0, GetGUID().GetCounter());
@@ -20921,7 +20921,7 @@ void Player::_SaveMonthlyQuestStatus(CharacterDatabaseTransaction& trans)
 
 void Player::_SaveSkills(CharacterDatabaseTransaction& trans)
 {
-    CharacterDatabasePreparedStatementt* stmt;
+    CharacterDatabasePreparedStatement* stmt;
     // we don't need transactions here.
     for (SkillStatusMap::iterator itr = mSkillStatus.begin(); itr != mSkillStatus.end();)
     {
@@ -22791,7 +22791,7 @@ bool Player::BuyItemFromVendorSlot(ObjectGuid vendorguid, uint32 vendorslot, uin
     if (crItem->IsGoldRequired(pProto) && pProto->GetBuyPrice() > 0) //Assume price cannot be negative (do not know why it is int32)
     {
         float buyPricePerItem = float(pProto->GetBuyPrice()) / pProto->GetBuyCount();
-        uint64 maxCount = MAX_MONEY_AMOUNT / buyPricePerItem;
+        double maxCount = static_cast<double>(MAX_MONEY_AMOUNT) / buyPricePerItem;
         if ((uint64)count > maxCount)
         {
             TC_LOG_ERROR("entities.player.cheat", "Player::BuyItemFromVendorSlot: Player '%s' (%s) tried to buy item (ItemID: %u, Count: %u), causing overflow",

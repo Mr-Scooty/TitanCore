@@ -162,7 +162,7 @@ void BlackMarketMgr::Update(bool updateTime)
 
 void BlackMarketMgr::RefreshAuctions()
 {
-    CharacterDatabaseTransactio trans = CharacterDatabase.BeginTransaction();
+    CharacterDatabaseTransaction trans = CharacterDatabase.BeginTransaction();
     // Delete completed auctions
     for (BlackMarketEntryMap::iterator itr = _auctions.begin(); itr != _auctions.end();)
     {
