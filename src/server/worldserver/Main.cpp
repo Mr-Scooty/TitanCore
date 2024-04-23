@@ -97,7 +97,7 @@ public:
     static void Handler(std::weak_ptr<FreezeDetector> freezeDetectorRef, boost::system::error_code const& error);
 
 private:
-    Trinity::Asio::DeadlineTimer;
+    Trinity::Asio::DeadlineTimer _timer;
     uint32 _worldLoopCounter;
     uint32 _lastChangeMsTime;
     uint32 _maxCoreStuckTimeInMs;
