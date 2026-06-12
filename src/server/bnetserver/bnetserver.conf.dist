@@ -243,10 +243,10 @@ LoginDatabase.SynchThreads  = 1
 #        Following flags are available
 #           DATABASE_LOGIN     = 1, // Auth database
 #
-#        Default:     0  - (All Disabled)
-#                     1  - (All Enabled)
+#        Default:     1  - (All Enabled)
+#                     0  - (All Disabled)
 
-Updates.EnableDatabases = 0
+Updates.EnableDatabases = 1
 
 #
 #    Updates.AutoSetup
