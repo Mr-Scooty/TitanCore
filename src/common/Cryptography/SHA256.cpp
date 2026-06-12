@@ -20,20 +20,54 @@
 #include <cstring>
 #include <stdarg.h>
 
-SHA256Hash::SHA256Hash()
+SHA256Hash::SHA256Hash() : mC(EVP_MD_CTX_new())
 {
-    SHA256_Init(&mC);
+    EVP_DigestInit_ex(mC, EVP_sha256(), nullptr);
     memset(mDigest, 0, SHA256_DIGEST_LENGTH * sizeof(uint8));
+}
+
+SHA256Hash::SHA256Hash(SHA256Hash const& other) : mC(EVP_MD_CTX_new())
+{
+    EVP_MD_CTX_copy_ex(mC, other.mC);
+    memcpy(mDigest, other.mDigest, SHA256_DIGEST_LENGTH);
+}
+
+SHA256Hash::SHA256Hash(SHA256Hash&& other) noexcept : mC(other.mC)
+{
+    other.mC = nullptr;
+    memcpy(mDigest, other.mDigest, SHA256_DIGEST_LENGTH);
+}
+
+SHA256Hash& SHA256Hash::operator=(SHA256Hash const& other)
+{
+    if (this != &other)
+    {
+        EVP_MD_CTX_copy_ex(mC, other.mC);
+        memcpy(mDigest, other.mDigest, SHA256_DIGEST_LENGTH);
+    }
+    return *this;
+}
+
+SHA256Hash& SHA256Hash::operator=(SHA256Hash&& other) noexcept
+{
+    if (this != &other)
+    {
+        EVP_MD_CTX_free(mC);
+        mC = other.mC;
+        other.mC = nullptr;
+        memcpy(mDigest, other.mDigest, SHA256_DIGEST_LENGTH);
+    }
+    return *this;
 }
 
 SHA256Hash::~SHA256Hash()
 {
-    SHA256_Init(&mC);
+    EVP_MD_CTX_free(mC);
 }
 
 void SHA256Hash::UpdateData(uint8 const* data, size_t len)
 {
-    SHA256_Update(&mC, data, len);
+    EVP_DigestUpdate(mC, data, len);
 }
 
 void SHA256Hash::UpdateData(const std::string &str)
@@ -58,10 +92,11 @@ void SHA256Hash::UpdateBigNumbers(BigNumber* bn0, ...)
 
 void SHA256Hash::Initialize()
 {
-    SHA256_Init(&mC);
+    EVP_DigestInit_ex(mC, EVP_sha256(), nullptr);
 }
 
 void SHA256Hash::Finalize(void)
 {
-    SHA256_Final(mDigest, &mC);
+    uint32 length = 0;
+    EVP_DigestFinal_ex(mC, mDigest, &length);
 }

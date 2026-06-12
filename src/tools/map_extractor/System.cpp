@@ -28,6 +28,8 @@
 #include "wdt.h"
 #include <CascLib.h>
 #include <boost/filesystem/path.hpp>
+#include <boost/filesystem/directory.hpp>
+#include <boost/filesystem/exception.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <cstdio>
 #include <deque>

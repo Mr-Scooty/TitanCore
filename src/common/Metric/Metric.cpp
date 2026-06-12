@@ -22,15 +22,14 @@
 #include "Strand.h"
 #include "Util.h"
 #include <boost/algorithm/string/replace.hpp>
-#include <boost/asio/deadline_timer.hpp>
 #include <boost/asio/ip/tcp.hpp>
 
 void Metric::Initialize(std::string const& realmName, Trinity::Asio::IoContext& ioContext, std::function<void()> overallStatusLogger)
 {
     _dataStream = Trinity::make_unique<boost::asio::ip::tcp::iostream>();
     _realmName = FormatInfluxDBTagValue(realmName);
-    _batchTimer = Trinity::make_unique<boost::asio::deadline_timer>(ioContext);
-    _overallStatusTimer = Trinity::make_unique<boost::asio::deadline_timer>(ioContext);
+    _batchTimer = Trinity::make_unique<Trinity::Asio::DeadlineTimer>(ioContext);
+    _overallStatusTimer = Trinity::make_unique<Trinity::Asio::DeadlineTimer>(ioContext);
     _overallStatusLogger = overallStatusLogger;
     LoadFromConfigs();
 }
@@ -200,7 +199,7 @@ void Metric::ScheduleSend()
 {
     if (_enabled)
     {
-        _batchTimer->expires_from_now(boost::posix_time::seconds(_updateInterval));
+        _batchTimer->expires_after(std::chrono::seconds(_updateInterval));
         _batchTimer->async_wait(std::bind(&Metric::SendBatch, this));
     }
     else
@@ -224,7 +223,7 @@ void Metric::ScheduleOverallStatusLog()
 {
     if (_enabled)
     {
-        _overallStatusTimer->expires_from_now(boost::posix_time::seconds(_overallStatusTimerInterval));
+        _overallStatusTimer->expires_after(std::chrono::seconds(_overallStatusTimerInterval));
         _overallStatusTimer->async_wait([this](const boost::system::error_code&)
         {
             _overallStatusTimerTriggered = true;

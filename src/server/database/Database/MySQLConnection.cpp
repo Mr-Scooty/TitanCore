@@ -24,11 +24,8 @@
 #include "Timer.h"
 #include "Transaction.h"
 #include "Util.h"
-#ifdef _WIN32 // hack for broken mysql.h not including the correct winsock header for SOCKET definition, fixed in 5.7
-#include <winsock2.h>
-#endif
 #include <errmsg.h>
-#include <mysql.h>
+#include "MySQLWorkaround.h"
 #include <mysqld_error.h>
 
 MySQLConnectionInfo::MySQLConnectionInfo(std::string const& infoString)
@@ -99,6 +96,8 @@ uint32 MySQLConnection::Open()
     char const* unix_socket;
     //unsigned int timeout = 10;
 
+    // "utf8" is an alias for utf8mb3 on MySQL 8.x, matching the charset of the
+    // 7.3.5 TDB data; switching to utf8mb4 is a separate data migration
     mysql_options(mysqlInit, MYSQL_SET_CHARSET_NAME, "utf8");
     //mysql_options(mysqlInit, MYSQL_OPT_READ_TIMEOUT, (char const*)&timeout);
     #ifdef _WIN32
@@ -149,7 +148,7 @@ uint32 MySQLConnection::Open()
 
         // set connection properties to UTF8 to properly handle locales for different
         // server configs - core sends data in UTF8, so MySQL must expect UTF8 too
-        mysql_set_character_set(m_Mysql, "utf8");
+        mysql_set_character_set(m_Mysql, "utf8"); // alias for utf8mb3 on MySQL 8.x
         return 0;
     }
     else

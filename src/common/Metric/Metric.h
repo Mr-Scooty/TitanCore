@@ -20,6 +20,7 @@
 
 #include "Define.h"
 #include "AsioHacksFwd.h"
+#include "DeadlineTimer.h"
 #include "MPSCQueue.h"
 #include <chrono>
 #include <functional>
@@ -61,8 +62,8 @@ private:
     std::iostream& GetDataStream() { return *_dataStream; }
     std::unique_ptr<std::iostream> _dataStream;
     MPSCQueue<MetricData> _queuedData;
-    std::unique_ptr<boost::asio::deadline_timer> _batchTimer;
-    std::unique_ptr<boost::asio::deadline_timer> _overallStatusTimer;
+    std::unique_ptr<Trinity::Asio::DeadlineTimer> _batchTimer;
+    std::unique_ptr<Trinity::Asio::DeadlineTimer> _overallStatusTimer;
     int32 _updateInterval = 0;
     int32 _overallStatusTimerInterval = 0;
     bool _enabled = false;

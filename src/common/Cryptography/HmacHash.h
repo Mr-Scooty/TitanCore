@@ -21,7 +21,7 @@
 
 #include "Define.h"
 #include <string>
-#include <openssl/hmac.h>
+#include <openssl/evp.h>
 #include <openssl/sha.h>
 
 class BigNumber;
@@ -43,7 +43,7 @@ class TC_COMMON_API HmacHash
         uint8* GetDigest() { return _digest; }
         uint32 GetLength() const { return DigestLength; }
     private:
-        HMAC_CTX* _ctx;
+        EVP_MAC_CTX* _ctx;
         uint8 _digest[DigestLength];
 };
 

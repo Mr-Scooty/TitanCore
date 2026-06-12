@@ -21,6 +21,7 @@
 #include "Define.h"
 #include <string>
 #include <type_traits>
+#include <openssl/evp.h>
 #include <openssl/sha.h>
 
 class BigNumber;
@@ -31,6 +32,10 @@ class TC_COMMON_API SHA256Hash
         typedef std::integral_constant<uint32, SHA256_DIGEST_LENGTH> DigestLength;
 
         SHA256Hash();
+        SHA256Hash(SHA256Hash const& other);
+        SHA256Hash(SHA256Hash&& other) noexcept;
+        SHA256Hash& operator=(SHA256Hash const& other);
+        SHA256Hash& operator=(SHA256Hash&& other) noexcept;
         ~SHA256Hash();
 
         void UpdateBigNumbers(BigNumber* bn0, ...);
@@ -45,7 +50,7 @@ class TC_COMMON_API SHA256Hash
         uint32 GetLength() const { return SHA256_DIGEST_LENGTH; }
 
     private:
-        SHA256_CTX mC;
+        EVP_MD_CTX* mC;
         uint8 mDigest[SHA256_DIGEST_LENGTH];
 };
 

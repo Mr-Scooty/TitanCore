@@ -15,15 +15,19 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "MySQLThreading.h"
-#include "MySQLWorkaround.h"
+#ifndef DeadlineTimer_h__
+#define DeadlineTimer_h__
 
-void MySQL::Library_Init()
+#include <boost/asio/steady_timer.hpp>
+
+namespace Trinity
 {
-    mysql_library_init(-1, NULL, NULL);
+    namespace Asio
+    {
+        // Replacement for the old boost::asio::deadline_timer usage; use
+        // std::chrono durations with expires_after
+        using DeadlineTimer = boost::asio::steady_timer;
+    }
 }
 
-void MySQL::Library_End()
-{
-    mysql_library_end();
-}
+#endif // DeadlineTimer_h__

@@ -299,10 +299,7 @@ void Field::LogWrongType(char* getter) const
         getter, meta.Type, meta.TableAlias, meta.Alias, meta.TableName, meta.Name, meta.Index);
 }
 
-#ifdef _WIN32 // hack for broken mysql.h not including the correct winsock header for SOCKET definition, fixed in 5.7
-#include <winsock2.h>
-#endif
-#include <mysql.h>
+#include "MySQLWorkaround.h"
 
 static char const* FieldTypeToString(enum_field_types type)
 {

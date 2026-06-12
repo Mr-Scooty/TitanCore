@@ -41,6 +41,7 @@ EndScriptData */
 
 #include <numeric>
 
+#include <boost/filesystem/directory.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <mysql_version.h>
 #include <openssl/crypto.h>

@@ -15,15 +15,17 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "MySQLThreading.h"
-#include "MySQLWorkaround.h"
+#ifndef MySQLWorkaround_h__
+#define MySQLWorkaround_h__
 
-void MySQL::Library_Init()
-{
-    mysql_library_init(-1, NULL, NULL);
-}
+#ifdef _WIN32 // hack for broken mysql.h not including the correct winsock header for SOCKET definition, fixed in 5.7
+#include <winsock2.h>
+#endif
+#include <mysql.h>
 
-void MySQL::Library_End()
-{
-    mysql_library_end();
-}
+// MySQL 8.0.1 removed my_bool; MariaDB still provides it
+#if !defined(MARIADB_VERSION_ID) && MYSQL_VERSION_ID >= 80001
+typedef bool my_bool;
+#endif
+
+#endif // MySQLWorkaround_h__

@@ -24,7 +24,7 @@
 #include "Log.h"
 #include "Timer.h"
 #include <boost/asio/ip/tcp.hpp>
-#include <boost/asio/deadline_timer.hpp>
+#include "DeadlineTimer.h"
 #include <atomic>
 #include <chrono>
 #include <memory>
@@ -122,7 +122,7 @@ protected:
     {
         TC_LOG_DEBUG("misc", "Network Thread Starting");
 
-        _updateTimer.expires_from_now(boost::posix_time::milliseconds(10));
+        _updateTimer.expires_after(std::chrono::milliseconds(10));
         _updateTimer.async_wait(std::bind(&NetworkThread<SocketType>::Update, this));
         _ioContext.run();
 
@@ -136,7 +136,7 @@ protected:
         if (_stopped)
             return;
 
-        _updateTimer.expires_from_now(boost::posix_time::milliseconds(10));
+        _updateTimer.expires_after(std::chrono::milliseconds(10));
         _updateTimer.async_wait(std::bind(&NetworkThread<SocketType>::Update, this));
 
         AddNewSockets();
@@ -173,7 +173,7 @@ private:
 
     Trinity::Asio::IoContext _ioContext;
     tcp::socket _acceptSocket;
-    boost::asio::deadline_timer _updateTimer;
+    Trinity::Asio::DeadlineTimer _updateTimer;
 };
 
 #endif // NetworkThread_h__

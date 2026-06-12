@@ -18,19 +18,12 @@
 #include "RSA.h"
 #include "BigNumber.h"
 #include <openssl/bn.h>
+#include <openssl/core_names.h>
 #include <openssl/pem.h>
 #include <algorithm>
 #include <iterator>
 #include <memory>
 #include <vector>
-
-#define CHECK_AND_DECLARE_FUNCTION_TYPE(name, publicKey, privateKey)                                        \
-    static_assert(std::is_same<decltype(&publicKey), decltype(&privateKey)>::value,                         \
-        "Public key and private key functions must have the same signature");                               \
-    using name ## _t = decltype(&publicKey);                                                                \
-    template <typename KeyTag> inline name ## _t get_ ## name () { return nullptr; }                        \
-    template <> inline name ## _t get_ ## name<Trinity::Crypto::RSA::PublicKey>() { return &publicKey; }    \
-    template <> inline name ## _t get_ ## name<Trinity::Crypto::RSA::PrivateKey>() { return &privateKey; }
 
 namespace
 {
@@ -42,24 +35,78 @@ struct BIODeleter
     }
 };
 
-CHECK_AND_DECLARE_FUNCTION_TYPE(PEM_read, PEM_read_bio_RSAPublicKey, PEM_read_bio_RSAPrivateKey);
-CHECK_AND_DECLARE_FUNCTION_TYPE(RSA_encrypt, RSA_public_encrypt, RSA_private_encrypt);
+struct PkeyCtxDeleter
+{
+    void operator()(EVP_PKEY_CTX* ctx)
+    {
+        EVP_PKEY_CTX_free(ctx);
+    }
+};
+
+// PEM loading, dispatched on key tag
+template <typename KeyTag>
+inline EVP_PKEY* ReadPem(BIO* bio);
+
+template <>
+inline EVP_PKEY* ReadPem<Trinity::Crypto::RSA::PublicKey>(BIO* bio)
+{
+    return PEM_read_bio_PUBKEY(bio, nullptr, nullptr, nullptr);
+}
+
+template <>
+inline EVP_PKEY* ReadPem<Trinity::Crypto::RSA::PrivateKey>(BIO* bio)
+{
+    return PEM_read_bio_PrivateKey(bio, nullptr, nullptr, nullptr);
+}
+
+// RSA_public_encrypt was the raw public-key operation (PKCS#1 type 2 padding),
+// RSA_private_encrypt the raw private-key operation (PKCS#1 type 1 padding);
+// their EVP equivalents are EVP_PKEY_encrypt and EVP_PKEY_sign respectively.
+template <typename KeyTag>
+inline int OperationInit(EVP_PKEY_CTX* ctx);
+
+template <>
+inline int OperationInit<Trinity::Crypto::RSA::PublicKey>(EVP_PKEY_CTX* ctx)
+{
+    return EVP_PKEY_encrypt_init(ctx);
+}
+
+template <>
+inline int OperationInit<Trinity::Crypto::RSA::PrivateKey>(EVP_PKEY_CTX* ctx)
+{
+    return EVP_PKEY_sign_init(ctx);
+}
+
+template <typename KeyTag>
+inline int OperationDo(EVP_PKEY_CTX* ctx, unsigned char* out, size_t* outLen, unsigned char const* in, size_t inLen);
+
+template <>
+inline int OperationDo<Trinity::Crypto::RSA::PublicKey>(EVP_PKEY_CTX* ctx, unsigned char* out, size_t* outLen, unsigned char const* in, size_t inLen)
+{
+    return EVP_PKEY_encrypt(ctx, out, outLen, in, inLen);
+}
+
+template <>
+inline int OperationDo<Trinity::Crypto::RSA::PrivateKey>(EVP_PKEY_CTX* ctx, unsigned char* out, size_t* outLen, unsigned char const* in, size_t inLen)
+{
+    return EVP_PKEY_sign(ctx, out, outLen, in, inLen);
+}
 }
 
 Trinity::Crypto::RSA::RSA()
 {
-    _rsa = RSA_new();
+    _key = nullptr;
 }
 
 Trinity::Crypto::RSA::RSA(RSA&& rsa)
 {
-    _rsa = rsa._rsa;
-    rsa._rsa = RSA_new();
+    _key = rsa._key;
+    rsa._key = nullptr;
 }
 
 Trinity::Crypto::RSA::~RSA()
 {
-    RSA_free(_rsa);
+    EVP_PKEY_free(_key);
 }
 
 template <typename KeyTag>
@@ -69,9 +116,12 @@ bool Trinity::Crypto::RSA::LoadFromFile(std::string const& fileName, KeyTag)
     if (!keyBIO)
         return false;
 
-    if (!get_PEM_read<KeyTag>()(keyBIO.get(), &_rsa, nullptr, nullptr))
+    EVP_PKEY* key = ReadPem<KeyTag>(keyBIO.get());
+    if (!key)
         return false;
 
+    EVP_PKEY_free(_key);
+    _key = key;
     return true;
 }
 
@@ -84,22 +134,22 @@ bool Trinity::Crypto::RSA::LoadFromString(std::string const& keyPem, KeyTag)
     if (!keyBIO)
         return false;
 
-    if (!get_PEM_read<KeyTag>()(keyBIO.get(), &_rsa, nullptr, nullptr))
+    EVP_PKEY* key = ReadPem<KeyTag>(keyBIO.get());
+    if (!key)
         return false;
 
+    EVP_PKEY_free(_key);
+    _key = key;
     return true;
 }
 
 BigNumber Trinity::Crypto::RSA::GetModulus() const
 {
     BigNumber bn;
-#if defined(OPENSSL_VERSION_NUMBER) && OPENSSL_VERSION_NUMBER >= 0x10100000L
-    const BIGNUM* rsa_n;
-    RSA_get0_key(_rsa, &rsa_n, nullptr, nullptr);
-    BN_copy(bn.BN(), rsa_n);
-#else
-    BN_copy(bn.BN(), _rsa->n);
-#endif
+    BIGNUM* n = nullptr;
+    EVP_PKEY_get_bn_param(_key, OSSL_PKEY_PARAM_RSA_N, &n);
+    BN_copy(bn.BN(), n);
+    BN_free(n);
     return bn;
 }
 
@@ -107,17 +157,30 @@ template <typename KeyTag>
 bool Trinity::Crypto::RSA::Encrypt(uint8 const* data, std::size_t dataLength, uint8* output, int32 paddingType)
 {
     std::vector<uint8> inputData(std::make_reverse_iterator(data + dataLength), std::make_reverse_iterator(data));
-    int result = get_RSA_encrypt<KeyTag>()(inputData.size(), inputData.data(), output, _rsa, paddingType);
+
+    std::unique_ptr<EVP_PKEY_CTX, PkeyCtxDeleter> ctx(EVP_PKEY_CTX_new(_key, nullptr));
+    size_t outputLength = GetOutputSize();
+    bool result = ctx
+        && OperationInit<KeyTag>(ctx.get()) > 0
+        && EVP_PKEY_CTX_set_rsa_padding(ctx.get(), paddingType) > 0
+        && OperationDo<KeyTag>(ctx.get(), output, &outputLength, inputData.data(), inputData.size()) > 0;
+
     std::reverse(output, output + GetOutputSize());
-    return result != -1;
+    return result;
 }
 
 bool Trinity::Crypto::RSA::Sign(int32 hashType, uint8 const* dataHash, std::size_t dataHashLength, uint8* output)
 {
-    uint32 signatureLength = 0;
-    int result = RSA_sign(hashType, dataHash, dataHashLength, output, &signatureLength, _rsa);
+    std::unique_ptr<EVP_PKEY_CTX, PkeyCtxDeleter> ctx(EVP_PKEY_CTX_new(_key, nullptr));
+    size_t signatureLength = GetOutputSize();
+    bool result = ctx
+        && EVP_PKEY_sign_init(ctx.get()) > 0
+        && EVP_PKEY_CTX_set_rsa_padding(ctx.get(), RSA_PKCS1_PADDING) > 0
+        && EVP_PKEY_CTX_set_signature_md(ctx.get(), EVP_get_digestbynid(hashType)) > 0
+        && EVP_PKEY_sign(ctx.get(), output, &signatureLength, dataHash, dataHashLength) > 0;
+
     std::reverse(output, output + GetOutputSize());
-    return result != -1;
+    return result;
 }
 
 namespace Trinity

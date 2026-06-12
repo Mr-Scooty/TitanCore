@@ -17,6 +17,7 @@
  */
 
 #include "RASession.h"
+#include <thread>
 #include "AccountMgr.h"
 #include "Config.h"
 #include "DatabaseEnv.h"

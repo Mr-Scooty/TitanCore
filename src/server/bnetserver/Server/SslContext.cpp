@@ -44,6 +44,6 @@ bool Battlenet::SslContext::Initialize()
 
 boost::asio::ssl::context& Battlenet::SslContext::instance()
 {
-    static boost::asio::ssl::context context(boost::asio::ssl::context::sslv23);
+    static boost::asio::ssl::context context(boost::asio::ssl::context::tls);
     return context;
 }

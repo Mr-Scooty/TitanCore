@@ -46,6 +46,9 @@ if (WITH_DYNAMIC_LINKING OR WITH_DYNAMIC_LINKING_FORCED)
 else()
   set(BUILD_SHARED_LIBS OFF)
 endif()
+# Bundled jemalloc (3.6.0) does not build against modern glibc; default to off.
+# Re-enable explicitly with -DNOJEM=0 once jemalloc is updated or replaced by a system lib.
+option(NOJEM            "Disable linking the bundled jemalloc"                        1)
 option(WITH_WARNINGS    "Show all warnings during compile"                            0)
 option(WITH_COREDEBUG   "Include additional debug-code in core"                       0)
 set(WITH_SOURCE_TREE    "hierarchical" CACHE STRING "Build the source tree for IDE's.")

@@ -20,10 +20,7 @@
 #include "MySQLConnection.h"
 #include "QueryResult.h"
 #include "Log.h"
-#ifdef _WIN32 // hack for broken mysql.h not including the correct winsock header for SOCKET definition, fixed in 5.7
-#include <winsock2.h>
-#endif
-#include <mysql.h>
+#include "MySQLWorkaround.h"
 #include <sstream>
 
 PreparedStatement::PreparedStatement(uint32 index) :

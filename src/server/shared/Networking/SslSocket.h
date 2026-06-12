@@ -58,6 +58,12 @@ public:
         _sslSocket.async_write_some(buffers, std::move(handler));
     }
 
+    template<typename WaitHandlerType>
+    void async_wait(boost::asio::socket_base::wait_type type, WaitHandlerType&& handler)
+    {
+        _socket.async_wait(type, std::move(handler));
+    }
+
     template<typename ConstBufferSequence>
     std::size_t write_some(ConstBufferSequence const& buffers, boost::system::error_code& error)
     {

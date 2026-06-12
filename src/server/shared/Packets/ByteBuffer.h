@@ -31,12 +31,12 @@ class MessageBuffer;
 class TC_SHARED_API ByteBufferException : public std::exception
 {
 public:
-    ~ByteBufferException() throw() { }
+    ~ByteBufferException() noexcept = default;
 
-    char const* what() const throw() override { return msg_.c_str(); }
+    char const* what() const noexcept override { return msg_.c_str(); }
 
 protected:
-    std::string & message() throw() { return msg_; }
+    std::string & message() noexcept { return msg_; }
 
 private:
     std::string msg_;
@@ -47,7 +47,7 @@ class TC_SHARED_API ByteBufferPositionException : public ByteBufferException
 public:
     ByteBufferPositionException(size_t pos, size_t size, size_t valueSize);
 
-    ~ByteBufferPositionException() throw() { }
+    ~ByteBufferPositionException() noexcept = default;
 };
 
 class TC_SHARED_API ByteBuffer

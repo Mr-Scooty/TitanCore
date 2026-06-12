@@ -22,20 +22,54 @@
 #include <cstring>
 #include <stdarg.h>
 
-SHA1Hash::SHA1Hash()
+SHA1Hash::SHA1Hash() : mC(EVP_MD_CTX_new())
 {
-    SHA1_Init(&mC);
+    EVP_DigestInit_ex(mC, EVP_sha1(), nullptr);
     memset(mDigest, 0, SHA_DIGEST_LENGTH * sizeof(uint8));
+}
+
+SHA1Hash::SHA1Hash(SHA1Hash const& other) : mC(EVP_MD_CTX_new())
+{
+    EVP_MD_CTX_copy_ex(mC, other.mC);
+    memcpy(mDigest, other.mDigest, SHA_DIGEST_LENGTH);
+}
+
+SHA1Hash::SHA1Hash(SHA1Hash&& other) noexcept : mC(other.mC)
+{
+    other.mC = nullptr;
+    memcpy(mDigest, other.mDigest, SHA_DIGEST_LENGTH);
+}
+
+SHA1Hash& SHA1Hash::operator=(SHA1Hash const& other)
+{
+    if (this != &other)
+    {
+        EVP_MD_CTX_copy_ex(mC, other.mC);
+        memcpy(mDigest, other.mDigest, SHA_DIGEST_LENGTH);
+    }
+    return *this;
+}
+
+SHA1Hash& SHA1Hash::operator=(SHA1Hash&& other) noexcept
+{
+    if (this != &other)
+    {
+        EVP_MD_CTX_free(mC);
+        mC = other.mC;
+        other.mC = nullptr;
+        memcpy(mDigest, other.mDigest, SHA_DIGEST_LENGTH);
+    }
+    return *this;
 }
 
 SHA1Hash::~SHA1Hash()
 {
-    SHA1_Init(&mC);
+    EVP_MD_CTX_free(mC);
 }
 
 void SHA1Hash::UpdateData(const uint8 *dta, int len)
 {
-    SHA1_Update(&mC, dta, len);
+    EVP_DigestUpdate(mC, dta, len);
 }
 
 void SHA1Hash::UpdateData(const std::string &str)
@@ -60,18 +94,20 @@ void SHA1Hash::UpdateBigNumbers(BigNumber* bn0, ...)
 
 void SHA1Hash::Initialize()
 {
-    SHA1_Init(&mC);
+    EVP_DigestInit_ex(mC, EVP_sha1(), nullptr);
 }
 
 void SHA1Hash::Finalize(void)
 {
-    SHA1_Final(mDigest, &mC);
+    uint32 length = 0;
+    EVP_DigestFinal_ex(mC, mDigest, &length);
 }
 
 std::string CalculateSHA1Hash(std::string const& content)
 {
     unsigned char digest[SHA_DIGEST_LENGTH];
-    SHA1((unsigned char*)content.c_str(), content.length(), (unsigned char*)&digest);
+    uint32 length = 0;
+    EVP_Digest(content.c_str(), content.length(), digest, &length, EVP_sha1(), nullptr);
 
     return ByteArrayToHexStr(digest, SHA_DIGEST_LENGTH);
 }

@@ -20,6 +20,7 @@
 #define _REALMLIST_H
 
 #include "Define.h"
+#include "DeadlineTimer.h"
 #include "Realm.h"
 #include <map>
 #include <vector>
@@ -109,7 +110,7 @@ private:
     RealmMap _realms;
     std::unordered_set<std::string> _subRegions;
     uint32 _updateInterval;
-    std::unique_ptr<boost::asio::deadline_timer> _updateTimer;
+    std::unique_ptr<Trinity::Asio::DeadlineTimer> _updateTimer;
     std::unique_ptr<boost::asio::ip::tcp_resolver> _resolver;
 };
 

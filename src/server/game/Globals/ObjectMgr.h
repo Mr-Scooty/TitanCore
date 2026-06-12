@@ -33,6 +33,7 @@
 #include "SharedDefines.h"
 #include "Trainer.h"
 #include "VehicleDefines.h"
+#include <algorithm>
 #include <map>
 #include <unordered_map>
 

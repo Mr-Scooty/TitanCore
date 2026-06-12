@@ -15,14 +15,17 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef OPENSSL_CRYPTO_H
-#define OPENSSL_CRYPTO_H
+// note: do not reuse OpenSSL's own OPENSSL_CRYPTO_H include guard
+#ifndef OpenSSLCrypto_h__
+#define OpenSSLCrypto_h__
 
 #include "Define.h"
 
 /**
-* A group of functions which setup openssl crypto module to work properly in multithreaded enviroment
-* If not setup properly - it will crash
+* Global one-time setup/teardown of the OpenSSL library.
+* OpenSSL 1.1+ is thread-safe out of the box; this now only loads the
+* providers needed by the core (the game protocol requires RC4, which
+* lives in the OpenSSL 3.x "legacy" provider).
 */
 namespace OpenSSLCrypto
 {

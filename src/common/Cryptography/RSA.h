@@ -16,6 +16,7 @@
  */
 
 #include "Define.h"
+#include <openssl/evp.h>
 #include <openssl/objects.h>
 #include <openssl/rsa.h>
 #include <string>
@@ -48,7 +49,7 @@ public:
     template <typename KeyTag>
     bool LoadFromString(std::string const& keyPem, KeyTag);
 
-    uint32 GetOutputSize() const { return uint32(RSA_size(_rsa)); }
+    uint32 GetOutputSize() const { return uint32(EVP_PKEY_get_size(_key)); }
     BigNumber GetModulus() const;
 
     template <typename KeyTag, typename PaddingTag>
@@ -72,7 +73,7 @@ private:
     RSA(RSA const& rsa) = delete;
     RSA& operator=(RSA const& rsa) = delete;
 
-    ::RSA* _rsa;
+    EVP_PKEY* _key;
 };
 }
 }

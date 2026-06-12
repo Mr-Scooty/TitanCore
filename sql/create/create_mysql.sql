@@ -1,4 +1,5 @@
-GRANT USAGE ON * . * TO 'trinity'@'localhost' IDENTIFIED BY 'trinity' WITH MAX_QUERIES_PER_HOUR 0 MAX_CONNECTIONS_PER_HOUR 0 MAX_UPDATES_PER_HOUR 0 ;
+-- MySQL 8.x: users must be created with CREATE USER; GRANT ... IDENTIFIED BY was removed
+CREATE USER IF NOT EXISTS 'trinity'@'localhost' IDENTIFIED BY 'trinity';
 
 CREATE DATABASE `world` DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;
 
