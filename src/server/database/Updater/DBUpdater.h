@@ -45,12 +45,6 @@ private:
     std::string const _msg;
 };
 
-enum BaseLocation
-{
-    LOCATION_REPOSITORY,
-    LOCATION_DOWNLOAD
-};
-
 class DBUpdaterUtil
 {
 public:
@@ -75,8 +69,6 @@ public:
     static std::string GetBaseFile();
 
     static bool IsEnabled(uint32 const updateMask);
-
-    static BaseLocation GetBaseLocationType();
 
     static bool Create(DatabaseWorkerPool<T>& pool);
 

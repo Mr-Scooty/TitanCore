@@ -20,14 +20,16 @@
 #include "Config.h"
 #include "DatabaseEnv.h"
 #include "DatabaseLoader.h"
-#include "GitRevision.h"
 #include "Log.h"
 #include "QueryResult.h"
 #include "StartProcess.h"
 #include "UpdateFetcher.h"
+#include <boost/filesystem/directory.hpp>
 #include <boost/filesystem/operations.hpp>
+#include <algorithm>
 #include <fstream>
 #include <iostream>
+#include <vector>
 
 std::string DBUpdaterUtil::GetCorrectedMySQLExecutable()
 {
@@ -107,7 +109,8 @@ std::string DBUpdater<WorldDatabaseConnection>::GetTableName()
 template<>
 std::string DBUpdater<WorldDatabaseConnection>::GetBaseFile()
 {
-    return GitRevision::GetFullDatabase();
+    return BuiltInConfig::GetSourceDirectory() +
+        "/sql/base/world";
 }
 
 template<>
@@ -115,12 +118,6 @@ bool DBUpdater<WorldDatabaseConnection>::IsEnabled(uint32 const updateMask)
 {
     // This way silences warnings under msvc
     return (updateMask & DatabaseLoader::DATABASE_WORLD) ? true : false;
-}
-
-template<>
-BaseLocation DBUpdater<WorldDatabaseConnection>::GetBaseLocationType()
-{
-    return LOCATION_DOWNLOAD;
 }
 
 // Character Database
@@ -166,7 +163,8 @@ std::string DBUpdater<HotfixDatabaseConnection>::GetTableName()
 template<>
 std::string DBUpdater<HotfixDatabaseConnection>::GetBaseFile()
 {
-    return GitRevision::GetHotfixesDatabase();
+    return BuiltInConfig::GetSourceDirectory() +
+        "/sql/base/hotfixes";
 }
 
 template<>
@@ -174,19 +172,6 @@ bool DBUpdater<HotfixDatabaseConnection>::IsEnabled(uint32 const updateMask)
 {
     // This way silences warnings under msvc
     return (updateMask & DatabaseLoader::DATABASE_HOTFIX) ? true : false;
-}
-
-template<>
-BaseLocation DBUpdater<HotfixDatabaseConnection>::GetBaseLocationType()
-{
-    return LOCATION_DOWNLOAD;
-}
-
-// All
-template<class T>
-BaseLocation DBUpdater<T>::GetBaseLocationType()
-{
-    return LOCATION_REPOSITORY;
 }
 
 template<class T>
@@ -303,36 +288,42 @@ bool DBUpdater<T>::Populate(DatabaseWorkerPool<T>& pool)
     Path const base(p);
     if (!exists(base))
     {
-        switch (DBUpdater<T>::GetBaseLocationType())
-        {
-            case LOCATION_REPOSITORY:
-            {
-                TC_LOG_ERROR("sql.updates", ">> Base file \"%s\" is missing. Try fixing it by cloning the source again.",
-                    base.generic_string().c_str());
-
-                break;
-            }
-            case LOCATION_DOWNLOAD:
-            {
-                const char* filename = base.filename().generic_string().c_str();
-                const char* workdir = boost::filesystem::current_path().generic_string().c_str();
-                TC_LOG_ERROR("sql.updates", ">> File \"%s\" is missing, download it from \"https://github.com/TrinityCore/TrinityCore/releases\"" \
-                    " uncompress it and place the file \"%s\" in the directory \"%s\".", filename, filename, workdir);
-                break;
-            }
-        }
+        TC_LOG_ERROR("sql.updates", ">> Base path \"%s\" is missing. Try fixing it by cloning the source again.",
+            base.generic_string().c_str());
         return false;
     }
+
+    std::vector<Path> files;
+    if (boost::filesystem::is_directory(base))
+    {
+        for (boost::filesystem::directory_iterator itr(base); itr != boost::filesystem::directory_iterator(); ++itr)
+            if (boost::filesystem::is_regular_file(itr->path()) && (itr->path().extension() == ".sql"))
+                files.push_back(itr->path());
+
+        if (files.empty())
+        {
+            TC_LOG_ERROR("sql.updates", ">> Base directory \"%s\" contains no sql files. Try fixing it by cloning the source again.",
+                base.generic_string().c_str());
+            return false;
+        }
+
+        std::sort(files.begin(), files.end());
+    }
+    else
+        files.push_back(base);
 
     // Update database
-    TC_LOG_INFO("sql.updates", ">> Applying \'%s\'...", base.generic_string().c_str());
-    try
+    for (Path const& file : files)
     {
-        ApplyFile(pool, base);
-    }
-    catch (UpdateException&)
-    {
-        return false;
+        TC_LOG_INFO("sql.updates", ">> Applying \'%s\'...", file.generic_string().c_str());
+        try
+        {
+            ApplyFile(pool, file);
+        }
+        catch (UpdateException&)
+        {
+            return false;
+        }
     }
 
     TC_LOG_INFO("sql.updates", ">> Done!");
